@@ -5,6 +5,9 @@ defmodule Identicon do
     |> pick_color
     |> build_grid
     |> filter_odd_squares
+    |> build_index_map
+    |> draw_image
+    |> save_image(input)
   end
 
   @doc """
@@ -48,13 +51,13 @@ defmodule Identicon do
 
   ## Examples
 
-    iex> image = %Identicon.Image{hex: [8, 0, 252, 87, 114, 148, 195, 78, 11, 40, 173, 40, 57, 67, 89, 69]}
-    iex> %Identicon.Image{grid: grid} = Identicon.build_grid(image)
-    iex> grid
-    [{8, 0}, {0, 1}, {252, 2}, {0, 3}, {8, 4}, {87, 5}, {114, 6}, {148, 7},
-    {114, 8}, {87, 9}, {195, 10}, {78, 11}, {11, 12}, {78, 13}, {195, 14},
-    {40, 15}, {173, 16}, {40, 17}, {173, 18}, {40, 19}, {57, 20}, {67, 21},
-    {89, 22}, {67, 23}, {57, 24}]
+      iex> image = %Identicon.Image{hex: [8, 0, 252, 87, 114, 148, 195, 78, 11, 40, 173, 40, 57, 67, 89, 69]}
+      iex> %Identicon.Image{grid: grid} = Identicon.build_grid(image)
+      iex> grid
+      [{8, 0}, {0, 1}, {252, 2}, {0, 3}, {8, 4}, {87, 5}, {114, 6}, {148, 7},
+      {114, 8}, {87, 9}, {195, 10}, {78, 11}, {11, 12}, {78, 13}, {195, 14},
+      {40, 15}, {173, 16}, {40, 17}, {173, 18}, {40, 19}, {57, 20}, {67, 21},
+      {89, 22}, {67, 23}, {57, 24}]
 
   """
   def build_grid(%Identicon.Image{hex: hex} = image) do
@@ -74,8 +77,8 @@ defmodule Identicon do
 
   ## Examples
 
-    iex> Identicon.mirror_row([1,2,3])
-    [1,2,3,2,1]
+      iex> Identicon.mirror_row([1,2,3])
+      [1,2,3,2,1]
 
   """
   def mirror_row([a,b,c]) do
@@ -88,12 +91,12 @@ defmodule Identicon do
 
   ## Examples
 
-  iex> image = %Identicon.Image{hex: [8, 0, 252, 87, 114, 148, 195, 78, 11, 40, 173, 40, 57, 67, 89, 69]}
-  iex> image = Identicon.build_grid(image)
-  iex> %Identicon.Image{grid: grid} = Identicon.filter_odd_squares(image)
-  iex> grid
-  [{8, 0}, {0, 1}, {252, 2}, {0, 3}, {8, 4}, {114, 6}, {148, 7}, {114, 8},
-  {78, 11}, {78, 13}, {40, 15}, {40, 17}, {40, 19}]
+      iex> image = %Identicon.Image{hex: [8, 0, 252, 87, 114, 148, 195, 78, 11, 40, 173, 40, 57, 67, 89, 69]}
+      iex> image = Identicon.build_grid(image)
+      iex> %Identicon.Image{grid: grid} = Identicon.filter_odd_squares(image)
+      iex> grid
+      [{8, 0}, {0, 1}, {252, 2}, {0, 3}, {8, 4}, {114, 6}, {148, 7}, {114, 8},
+      {78, 11}, {78, 13}, {40, 15}, {40, 17}, {40, 19}]
 
   """
   def filter_odd_squares(%Identicon.Image{grid: grid} = image) do
@@ -103,4 +106,56 @@ defmodule Identicon do
 
     %Identicon.Image{image | grid: even_nums}
   end
+
+  @doc """
+  Given an `Identicon.Image` with the grid element filled up by tuples when the
+  second element represents the index in the matrix, fills up a `pixel_map` which
+  contains tuples representing each one a pair of coordinates: `{top_left, bottom_right}`
+  that are the coordinates of the squares to be colored.
+
+  ## Examples
+
+      iex> image = %Identicon.Image{grid: [{8, 0}, {0, 1}, {252, 2}, {0, 3},\
+      {8, 4}, {114, 6}, {148, 7}, {114, 8}, {78, 11}, {78, 13}, {40, 15}, {40, 17}, {40, 19}]}
+      iex> %Identicon.Image{pixel_map: pm} = Identicon.build_index_map(image)
+      iex> pm
+      [{{0, 0}, {50, 50}}, {{50, 0}, {100, 50}}, {{100, 0}, {150, 50}},
+       {{150, 0}, {200, 50}}, {{200, 0}, {250, 50}}, {{50, 50}, {100, 100}},
+       {{100, 50}, {150, 100}}, {{150, 50}, {200, 100}}, {{50, 100}, {100, 150}},
+       {{150, 100}, {200, 150}}, {{0, 150}, {50, 200}}, {{100, 150}, {150, 200}},
+       {{200, 150}, {250, 200}}]
+
+  """
+  def build_index_map(%Identicon.Image{grid: grid} = image) do
+    pixel_map = Enum.map grid, fn({_num, index}) ->
+      horizontal = rem(index, 5) * 50
+      vertical = div(index, 5) * 50
+
+      top_left = {horizontal, vertical}
+      bottom_right = {horizontal + 50, vertical + 50}
+
+      {top_left, bottom_right}
+    end
+    %Identicon.Image{image | pixel_map: pixel_map}
+  end
+
+  @doc """
+  Creates a binary containing the png image of the Identicon
+  """
+  def draw_image(%Identicon.Image{color: color, pixel_map: pixel_map}) do
+    image = :egd.create(250, 250)
+    coloring = :egd.color(color)
+    Enum.each pixel_map, fn({top_left, bottom_right}) ->
+      :egd.filledRectangle(image, top_left, bottom_right, coloring)
+    end
+    :egd.render(image)
+  end
+
+  @doc """
+  Saves the `image` binary provided into a file named after `filename.png`
+  """
+  def save_image(image, filename) do
+    File.write("#{filename}.png", image)
+  end
+
 end

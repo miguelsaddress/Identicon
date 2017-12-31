@@ -1,21 +1,24 @@
 # Identicon
 
-**TODO: Add description**
+This is a project from Udemy's course `The Complete Elixir and Phoenix Bootcamp` by [Stephen Gider](https://github.com/StephenGrider)
+Given a string representing a username, Identicon will build a unique image to represent that user.
 
-## Installation
+## How to run
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `identicon` to your list of dependencies in `mix.exs`:
+Install the dependencies with `mix deps.get` and then, for example, inside the elixir console run:
 
-```elixir
-def deps do
-  [
-    {:identicon, "~> 0.1.0"}
-  ]
-end
 ```
+iex> Identicon.main("miguelsaddress")
+```
+After that you should now have an image named after `miguelsaddress.png`
 
-Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
-and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
-be found at [https://hexdocs.pm/identicon](https://hexdocs.pm/identicon).
 
+![Result](miguelsaddress.png)
+
+## Generate the docs
+
+After the dependencies have been installed, run `mix docs`
+
+## Run the tests
+
+Run `mix test`
